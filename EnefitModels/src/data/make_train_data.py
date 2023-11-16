@@ -14,7 +14,7 @@ def clean_data():
     electricityPrices = pd.read_csv('data/raw/electricity_prices.csv')
     electricityPrices = localToUTC(electricityPrices, 'forecast_date', 'Europe/Warsaw')
     electricityPrices.origin_date = electricityPrices.forecast_date - \
-                                        datetime.timedelta(days=1)
+        datetime.timedelta(days=1)
     electricityPrices.sort_values('forecast_date')
 
     electricityPrices.to_csv('data/processed/electricity_prices.csv', index=False)

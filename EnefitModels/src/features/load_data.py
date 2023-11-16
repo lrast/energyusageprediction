@@ -8,8 +8,8 @@ class DataHolder(object):
         self.__dict__.update(**kwargs)
 
 
-def load_all_data(dataPath='data'):
-    """ script to load the processed data from csvs
+def load_processed_data(dataPath='data'):
+    """ script to load the preprocessed data from csvs
     """
 
     electricityPrices = pd.read_csv(f'{dataPath}/processed/electricity_prices.csv',
