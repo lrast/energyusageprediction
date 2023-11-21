@@ -1,15 +1,19 @@
 {
   "id": "lerast/enefit-submission",
+  "id_no": 46262067,
   "title": "Enefit Submission",
   "code_file": "enefit-initialsubmission.ipynb",
   "language": "python",
   "kernel_type": "notebook",
-  "is_private": "true",
-  "enable_gpu": "false",
-  "enable_tpu": "false",
-  "enable_internet": "true",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [],
   "dataset_sources": [],
-  "competition_sources": ["predict-energy-behavior-of-prosumers"],
   "kernel_sources": [],
-  "model_sources": ["../src"]
+  "competition_sources": [
+    "predict-energy-behavior-of-prosumers"
+  ],
+  "model_sources": []
 }
