@@ -8,8 +8,28 @@ class DataHolder(object):
         self.__dict__.update(**kwargs)
 
 
+def load_raw_data(dataPath='data'):
+    """ load the raw data from csv"""
+
+    electricityPrices = pd.read_csv(f'{dataPath}/raw/electricity_prices.csv')
+    gasPrices = pd.read_csv(f'{dataPath}/raw/gas_prices.csv')
+    clients = pd.read_csv(f'{dataPath}/raw/client.csv')
+    train = pd.read_csv(f'{dataPath}/raw/train.csv')
+    weatherHistorical = pd.read_csv(f'{dataPath}/raw/historical_weather.csv')
+    weatherForecast = pd.read_csv(f'{dataPath}/raw/forecast_weather.csv')
+
+    return DataHolder(
+        electricityPrices=electricityPrices,
+        gasPrices=gasPrices,
+        clients=clients,
+        train=train,
+        weatherHistorical=weatherHistorical,
+        weatherForecast=weatherForecast
+    )
+
+
 def load_processed_data(dataPath='data'):
-    """ script to load the preprocessed data from csvs
+    """ load the preprocessed data from csvs
     """
 
     electricityPrices = pd.read_csv(f'{dataPath}/processed/electricity_prices.csv',
