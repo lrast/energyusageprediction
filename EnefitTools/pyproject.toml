@@ -1,7 +1,9 @@
 [project]
-name = "EnefitModels"
+name = "EnefitTools"
 version = "0.0.1"
 dependencies = [
     "pandas",
+    "polars",
+    "statsmodels",
     'importlib-metadata; python_version<"3.10"',
 ]
