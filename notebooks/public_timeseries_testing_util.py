@@ -22,14 +22,14 @@ class MockApi:
                 A call to iter_test serves all rows of all dataframes with the current group ID value.
             export_group_id_column: if true, the dataframes iter_test serves will include the group_id_column values.
         '''
-        self.input_paths: Sequence[str] = ['data/test/test.csv',
-                                           'data/test/revealed_targets.csv',
-                                           'data/test/client.csv',
-                                           'data/test/historical_weather.csv',
-                                           'data/test/forecast_weather.csv',
-                                           'data/test/electricity_prices.csv',
-                                           'data/test/gas_prices.csv',
-                                           'data/test/sample_submission.csv'
+        self.input_paths: Sequence[str] = ['../data/test/test.csv',
+                                           '../data/test/revealed_targets.csv',
+                                           '../data/test/client.csv',
+                                           '../data/test/historical_weather.csv',
+                                           '../data/test/forecast_weather.csv',
+                                           '../data/test/electricity_prices.csv',
+                                           '../data/test/gas_prices.csv',
+                                           '../data/test/sample_submission.csv'
                                           ]
         self.group_id_column: str = 'data_block_id'
         self.export_group_id_column: bool = True
