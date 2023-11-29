@@ -1,0 +1,18 @@
+{
+  "id": "lerast/linear-seasonal",
+  "title": "Enefit Linear Multiplicative Model",
+  "code_file": "0.2-minimal-model.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [],
+  "dataset_sources": [],
+  "kernel_sources": [],
+  "competition_sources": [
+    "predict-energy-behavior-of-prosumers"
+  ],
+  "model_sources": []
+}
