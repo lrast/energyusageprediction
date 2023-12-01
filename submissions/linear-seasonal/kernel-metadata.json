@@ -1,7 +1,8 @@
 {
-  "id": "lerast/linear-seasonal",
+  "id": "lerast/enefit-linear-multiplicative-model",
+  "id_no": 47066852,
   "title": "Enefit Linear Multiplicative Model",
-  "code_file": "0.2-minimal-model.ipynb",
+  "code_file": "minimal-model-sub.ipynb",
   "language": "python",
   "kernel_type": "notebook",
   "is_private": true,
