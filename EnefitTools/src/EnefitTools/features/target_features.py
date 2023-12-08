@@ -47,7 +47,11 @@ class IdNormalizer(BaseEstimator, TransformerMixin):
 
     def inverse_transform(self, predictions):
         """ undo the maximum normalization """
-        predictions = predictions.join(
+        predictions = predictions.with_columns(
+                                    pl.col('prediction_unit_id').cast(
+                                            self.max_values['prediction_unit_id'].dtype
+                                        )
+                                ).join(
                                     self.max_values,
                                     on=['prediction_unit_id'],
                                     how='left'
