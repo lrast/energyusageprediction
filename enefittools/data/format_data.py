@@ -18,12 +18,33 @@ def format_dfs(test, client):
     # client formatting
     client['date'] = pd.to_datetime(client['date']).dt.date
     client = pl.from_pandas(client)
-    
+
     #return (test, revealed_targets, client, 
     #        weatherHistorical, weatherForecast,
     #        electricityPrices, gasPrices, sample_prediction)
 
     return test, client
+
+
+def split_production_consumption(features, targets):
+    """ splits the features and targets into production and consumption set
+    """
+    production_features = features.filter(
+                                        pl.col('is_consumption') == 0
+                                 ).drop('is_consumption')
+    production_targets = targets.filter(
+                                        pl.col('is_consumption') == 0
+                               ).drop('is_consumption')
+
+    consumption_features = features.filter(
+                                        pl.col('is_consumption') == 1
+                                  ).drop('is_consumption')
+    consumption_targets = targets.filter(
+                                        pl.col('is_consumption') == 1
+                                ).drop('is_consumption')
+
+    return (production_features, production_targets,
+            consumption_features, consumption_targets)
 
 
 def localToUTC(df, timeInd, location):
