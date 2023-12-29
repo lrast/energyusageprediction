@@ -101,7 +101,8 @@ def make_time_features(train, clients, date_process):
     # some of these features should be included in the future
     columns_to_drop = ['eic_count', 'installed_capacity',
                        'data_block_id', 'data_block_id_right',
-                       'prediction_date', 'prediction_datetime', 'date_when_predicting'
+                       'prediction_date', 'prediction_datetime', 'date_when_predicting',
+                       'currently_scored'
                        ]
     features = features.drop(columns_to_drop)
     

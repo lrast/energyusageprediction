@@ -3,27 +3,61 @@ import polars as pl
 import pandas as pd
 
 
-def format_dfs(test, client):
+def format_dfs(target=None, revealed_targets=None, client=None,
+               weather_historical=None, weather_forecast=None,
+               electricity_prices=None, gas_prices=None, sample_prediction=None):
     """ dataframe formatting for training and online use """
-    # test formatting
-    test.dropna(axis='index', inplace=True)
-    test = test.rename(columns={'datetime': 'prediction_datetime'})
-    test['prediction_datetime'] = pd.to_datetime(test['prediction_datetime'])
-    test = pl.from_pandas(test)
-    test = test.with_columns(
-                (pl.col('prediction_datetime').dt.date() +
-                    datetime.timedelta(days=-2)).alias('date_when_predicting')
-              )
 
-    # client formatting
-    client['date'] = pd.to_datetime(client['date']).dt.date
-    client = pl.from_pandas(client)
+    column_types = {'county': pl.Int8, 'product_type': pl.Int8,
+                    'is_business': pl.Boolean, 'row_id': pl.Int64,
+                    'prediction_unit_id': pl.Int8
+                    }
 
-    #return (test, revealed_targets, client, 
-    #        weatherHistorical, weatherForecast,
-    #        electricityPrices, gasPrices, sample_prediction)
+    if target is not None:
+        # target formatting
+        target.dropna(axis='index', inplace=True)
+        target = target.rename(columns={'datetime': 'prediction_datetime'})
+        target['prediction_datetime'] = pd.to_datetime(target['prediction_datetime'])
+        target = pl.from_pandas(target,
+                                schema_overrides=column_types
+                                )
+        target = target.with_columns(
+                    (pl.col('prediction_datetime').dt.date() +
+                        datetime.timedelta(days=-2)).alias('date_when_predicting'),
+                  )
 
-    return test, client
+    if revealed_targets is not None:
+        pass
+
+    if client is not None:
+        # client formatting
+        client['date'] = pd.to_datetime(client['date']).dt.date
+        client = pl.from_pandas(client, schema_overrides=column_types)
+        client = client.with_columns()
+
+    if weather_historical is not None:
+        weather_historical['datetime'] = pd.to_datetime(weather_historical['datetime'])
+        weather_historical = pl.from_pandas(weather_historical)
+
+    if weather_forecast is not None:
+        weather_forecast['origin_datetime'] = pd.to_datetime(weather_forecast['origin_datetime'])
+        weather_forecast['forecast_datetime'] = pd.to_datetime(weather_forecast['forecast_datetime'])
+        weather_forecast = pl.from_pandas(weather_forecast)
+
+    if electricity_prices is not None:
+        pass
+
+    if gas_prices is not None:
+        pass
+
+    if sample_prediction is not None:
+        pass
+
+    return tuple(filter(lambda x: x is not None,
+                        (target, revealed_targets, client, 
+                         weather_historical, weather_forecast,
+                         electricity_prices, gas_prices, sample_prediction
+                         )))
 
 
 def split_production_consumption(features, targets):
