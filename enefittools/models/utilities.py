@@ -30,5 +30,6 @@ def make_wrapped_model(modelClass, **modelKwargs):
             features = trainSet.drop(['target']+self.metadata_rows)
 
             super(WrappedModel, self).fit(features, targets)
+            return self
 
     return WrappedModel()

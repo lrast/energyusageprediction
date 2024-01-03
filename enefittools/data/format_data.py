@@ -5,12 +5,18 @@ import pandas as pd
 
 def format_dfs(target=None, revealed_targets=None, client=None,
                weather_historical=None, weather_forecast=None,
-               electricity_prices=None, gas_prices=None, sample_prediction=None):
+               electricity_prices=None, gas_prices=None, 
+               sample_prediction=None, solar=None):
     """ dataframe formatting for training and online use """
 
     column_types = {'county': pl.Int8, 'product_type': pl.Int8,
-                    'is_business': pl.Boolean, 'row_id': pl.Int64,
-                    'prediction_unit_id': pl.Int8
+                    'is_business': pl.Boolean, 'is_consumption': pl.Boolean,
+                    'row_id': pl.Int64, 'prediction_unit_id': pl.Int8,
+
+                    'prediction_datetime': pl.Datetime('ms'),
+                    'origin_datetime': pl.Datetime('ms'),
+                    'forecast_datetime': pl.Datetime('ms'),
+                    'datetime': pl.Datetime('ms')
                     }
 
     if target is not None:
@@ -27,7 +33,8 @@ def format_dfs(target=None, revealed_targets=None, client=None,
                   )
 
     if revealed_targets is not None:
-        pass
+        revealed_targets = pl.from_pandas(revealed_targets,
+                                          schema_overrides=column_types)
 
     if client is not None:
         # client formatting
@@ -37,26 +44,32 @@ def format_dfs(target=None, revealed_targets=None, client=None,
 
     if weather_historical is not None:
         weather_historical['datetime'] = pd.to_datetime(weather_historical['datetime'])
-        weather_historical = pl.from_pandas(weather_historical)
+        weather_historical = pl.from_pandas(weather_historical,
+                                            schema_overrides=column_types)
 
     if weather_forecast is not None:
         weather_forecast['origin_datetime'] = pd.to_datetime(weather_forecast['origin_datetime'])
         weather_forecast['forecast_datetime'] = pd.to_datetime(weather_forecast['forecast_datetime'])
-        weather_forecast = pl.from_pandas(weather_forecast)
+        weather_forecast = pl.from_pandas(weather_forecast,
+                                          schema_overrides=column_types)
 
     if electricity_prices is not None:
-        pass
+        electricity_prices = pl.from_pandas(electricity_prices, schema_overrides=column_types)
 
     if gas_prices is not None:
-        pass
+        gas_prices = pl.from_pandas(gas_prices, schema_overrides=column_types)
 
     if sample_prediction is not None:
         pass
 
+    if solar is not None:
+        solar['datetime'] = pd.to_datetime(solar['datetime'])
+        solar = pl.from_pandas(solar, schema_overrides=column_types)
+
     return tuple(filter(lambda x: x is not None,
                         (target, revealed_targets, client, 
                          weather_historical, weather_forecast,
-                         electricity_prices, gas_prices, sample_prediction
+                         electricity_prices, gas_prices, sample_prediction, solar
                          )))
 
 
