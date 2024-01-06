@@ -7,7 +7,12 @@ def format_dfs(target=None, revealed_targets=None, client=None,
                weather_historical=None, weather_forecast=None,
                electricity_prices=None, gas_prices=None, 
                sample_prediction=None, solar=None):
-    """ dataframe formatting for training and online use """
+    """ dataframe formatting for training and online use 
+        
+        - encodes as polars dataframes
+        - sets proper types
+        - filter out two weather stations that don't make sense
+    """
 
     column_types = {'county': pl.Int8, 'product_type': pl.Int8,
                     'is_business': pl.Boolean, 'is_consumption': pl.Boolean,
@@ -46,12 +51,20 @@ def format_dfs(target=None, revealed_targets=None, client=None,
         weather_historical['datetime'] = pd.to_datetime(weather_historical['datetime'])
         weather_historical = pl.from_pandas(weather_historical,
                                             schema_overrides=column_types)
+        weather_historical = weather_historical.filter(
+                                ((pl.col('latitude') != 57.6) | (pl.col('longitude') != 23.2)),
+                                ((pl.col('latitude') != 57.6) | (pl.col('longitude') != 24.2)),
+                               )
 
     if weather_forecast is not None:
         weather_forecast['origin_datetime'] = pd.to_datetime(weather_forecast['origin_datetime'])
         weather_forecast['forecast_datetime'] = pd.to_datetime(weather_forecast['forecast_datetime'])
         weather_forecast = pl.from_pandas(weather_forecast,
                                           schema_overrides=column_types)
+        weather_forecast = weather_forecast.filter(
+                                ((pl.col('latitude') != 57.6) | (pl.col('longitude') != 23.2)),
+                                ((pl.col('latitude') != 57.6) | (pl.col('longitude') != 24.2)),
+                               )
 
     if electricity_prices is not None:
         electricity_prices = pl.from_pandas(electricity_prices, schema_overrides=column_types)
@@ -65,6 +78,11 @@ def format_dfs(target=None, revealed_targets=None, client=None,
     if solar is not None:
         solar['datetime'] = pd.to_datetime(solar['datetime'])
         solar = pl.from_pandas(solar, schema_overrides=column_types)
+        if 'latitude' in solar and 'longitude' in solar:
+            solar = solar.filter(
+                        ((pl.col('latitude') != 57.6) | (pl.col('longitude') != 23.2)),
+                        ((pl.col('latitude') != 57.6) | (pl.col('longitude') != 24.2)),
+                       )
 
     return tuple(filter(lambda x: x is not None,
                         (target, revealed_targets, client, 
