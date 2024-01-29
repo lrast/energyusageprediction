@@ -50,6 +50,3 @@ def make_rich_solar_data(locations,
 
     pd.concat(data_for_locations).to_csv('enefittools/data/datasets/solar_data_full.csv',
                                          index=False)
-
-
-

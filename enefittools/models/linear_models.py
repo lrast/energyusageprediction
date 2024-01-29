@@ -1,85 +1,48 @@
-# linear models for the forecasting component
-
 import polars as pl
 
-from sklearn.base import BaseEstimator, RegressorMixin, TransformerMixin
-from sklearn.linear_model import LinearRegression
-
-from enefittools.models.utilities import make_wrapped_model
+import statsmodels.formula.api as smf
+from sklearn.base import BaseEstimator, RegressorMixin
 
 
-class TimeseriesFeatures(BaseEstimator, TransformerMixin):
-    """ TimeseriesFeatures: use linear regression on different subsets
-        of the data to make features for future regressors.
-
-        For now, the regressor groups are based on the client information
+class SM_Regression(BaseEstimator, RegressorMixin):
+    """ Wrapper for statsmodels formula OLS
     """
-    def __init__(self):
-        super(TimeseriesFeatures, self).__init__()
-        self.models = {
-            'county': {i: make_wrapped_model(LinearRegression) for i in range(16)},
-            'is_business': {i: make_wrapped_model(LinearRegression) for i in range(2)},
-            'product_type': {i: make_wrapped_model(LinearRegression) for i in range(4)}
-            }
+    def __init__(self, formula, to_drop):
+        self.formula = formula
+        self.to_drop = to_drop
 
-    def fit(self, X, y):
-        # 1) normalize the feature by the unit max
-        unitMaxes = y.group_by('prediction_unit_id').agg(
-                            pl.col('target').max().alias('unit_max'))
-        y = y.join(unitMaxes, on='prediction_unit_id'
-            ).with_columns(target=(pl.col('target')/pl.col('unit_max'))
-            ).drop('unit_max')
+        self.model = None
+        self.is_fit = False
 
-        # 2) fit each model on the corresponing data slice
-        for columnName, possible in self.models.items():
-            for value, model in possible.items():
-                features_current = X.filter(pl.col(columnName) == value)
-                targets_current = y.filter(pl.col(columnName) == value)
+    def fit(self, data, overwrite=False):
+        if self.is_fit and not overwrite:
+            # protection against costly re-fitting
+            raise Exception('Already fit')
 
-                model.fit(features_current, targets_current)
-
+        self.model = smf.ols(self.formula, data=data.to_pandas())
+        self.model = self.model.fit()
+        
+        self.model.remove_data()
+        self.is_fit = True
+        self.is_fit_ = True
         return self
-
-    def transform(self, X, y=None):
-        runningResults = None
-        for columnName, possible in self.models.items():
-            for value, model in possible.items():
-                predictions_current = model.predict(X).rename(
-                                                 {'target': columnName+str(value)}
-                                                )
-
-                if runningResults is None:
-                    runningResults = predictions_current
-                else:
-                    runningResults = runningResults.join(predictions_current,
-                                                         on=['row_id', 'prediction_unit_id'])
-
-        return runningResults
-
-
-class ParallelLinearModels(BaseEstimator, RegressorMixin):
-    """ParallelLinearModels: split the input data based on some features and
-       apply a linear regression to each subset
-    """
-    def __init__(self):
-        super(ParallelLinearModels, self).__init__()
-        feature = ('prediction_unit_id', range(69))
-        self.models = {key: make_wrapped_model(LinearRegression) 
-                       for key in feature[1]}
-        self.col_name = feature[0]
-
-    def fit(self, X, y):
-        for key, model in self.models.items():
-            model.fit(X.filter(pl.col(self.col_name) == key),
-                      y.filter(pl.col(self.col_name) == key))
-        return self
-
+    
     def predict(self, X):
-        predictions = []
-        for key, model in self.models.items():
-            if X.filter(pl.col(self.col_name) == key).shape[0] != 0:
-                predictions.append(
-                            model.predict(X.filter(pl.col(self.col_name) == key))
-                        )
+        predictions = self.model.predict(X.to_pandas())
 
-        return pl.concat(predictions, how='vertical')
+        outputs = X.drop(
+                        self.to_drop
+                  ).with_columns(
+                        prediction=pl.lit(pl.from_pandas(predictions))
+                  )
+
+        return outputs
+
+    def residuals(self, data, target_col='target'):
+        predictions = pl.from_pandas(self.predict(data))
+
+        return data.with_columns(
+                        prediction=pl.lit(predictions)
+                  ).with_columns(
+                        residual=pl.col(target_col)-pl.col('prediction')
+                  )

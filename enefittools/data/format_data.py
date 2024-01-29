@@ -7,17 +7,23 @@ def format_dfs(target=None, revealed_targets=None, client=None,
                weather_historical=None, weather_forecast=None,
                electricity_prices=None, gas_prices=None, 
                sample_prediction=None, solar=None,
-               filter_weather=True):
+
+               filter_weather=True,
+               assemble_and_split=False,
+               mode='train'):
     """ dataframe formatting for training and online use 
         
         - encodes as polars dataframes
         - sets proper types
-        - filter out two weather stations that don't make sense
+        - filter out two weather stations that don't make sense (optional)
+        - join target and client data (optional)
+        - split by production, consumption (optional)
     """
 
     column_types = {'county': pl.Int8, 'product_type': pl.Int8,
                     'is_business': pl.Boolean, 'is_consumption': pl.Boolean,
                     'row_id': pl.Int64, 'prediction_unit_id': pl.Int8,
+                    'data_block_id': pl.Int64,
 
                     'prediction_datetime': pl.Datetime('ms'),
                     'origin_datetime': pl.Datetime('ms'),
@@ -39,8 +45,11 @@ def format_dfs(target=None, revealed_targets=None, client=None,
                   )
 
     if revealed_targets is not None:
+        revealed_targets['datetime'] = pd.to_datetime(revealed_targets['datetime'])
         revealed_targets = pl.from_pandas(revealed_targets,
                                           schema_overrides=column_types)
+        revealed_targets = revealed_targets.rename({'datetime': 'prediction_datetime'})
+
 
     if client is not None:
         # client formatting
@@ -71,9 +80,17 @@ def format_dfs(target=None, revealed_targets=None, client=None,
                                    )
 
     if electricity_prices is not None:
+        electricity_prices['forecast_datetime'] = pd.to_datetime(electricity_prices['forecast_date'])
+        electricity_prices['origin_datetime'] = pd.to_datetime(electricity_prices['origin_date'])
         electricity_prices = pl.from_pandas(electricity_prices, schema_overrides=column_types)
+        electricity_prices = electricity_prices.drop('forecast_date', 'origin_date'
+                                              ).with_columns(
+                                                    orgin_date=pl.col('origin_datetime').dt.date()
+                                              )
 
     if gas_prices is not None:
+        gas_prices['forecast_date'] = pd.to_datetime(gas_prices['forecast_date']).dt.date
+        gas_prices['origin_date'] = pd.to_datetime(gas_prices['origin_date']).dt.date
         gas_prices = pl.from_pandas(gas_prices, schema_overrides=column_types)
 
     if sample_prediction is not None:
@@ -88,47 +105,46 @@ def format_dfs(target=None, revealed_targets=None, client=None,
                         ((pl.col('latitude') != 57.6) | (pl.col('longitude') != 24.2)),
                        )
 
-    return tuple(filter(lambda x: x is not None,
-                        (target, revealed_targets, client, 
-                         weather_historical, weather_forecast,
-                         electricity_prices, gas_prices, sample_prediction, solar
-                         )))
+    if assemble_and_split:
+        prod, consume = split_prod_consume(assemble_train_client(target, client, mode))
+
+        return (prod, consume) + \
+            tuple(filter(lambda x: x is not None,
+                         (revealed_targets, weather_historical, weather_forecast,
+                          electricity_prices, gas_prices, sample_prediction, solar)
+                         ))
+
+    else:
+        return tuple(filter(lambda x: x is not None,
+                            (target, revealed_targets, client, 
+                             weather_historical, weather_forecast,
+                             electricity_prices, gas_prices, sample_prediction,
+                             solar
+                             )))
 
 
-def split_production_consumption(features, targets):
-    """ splits the features and targets into production and consumption set
-    """
-    production_features = features.filter(
-                                        pl.col('is_consumption') == 0
-                                 ).drop('is_consumption')
-    production_targets = targets.filter(
-                                        pl.col('is_consumption') == 0
-                               ).drop('is_consumption')
+def assemble_train_client(train, client, mode):
+    """Join the train and client datasets together into one dataset."""
 
-    consumption_features = features.filter(
-                                        pl.col('is_consumption') == 1
-                                  ).drop('is_consumption')
-    consumption_targets = targets.filter(
-                                        pl.col('is_consumption') == 1
-                                ).drop('is_consumption')
+    # I want to train with the ground truth installed capacity, even if this
+    # is not available at test time
+    if mode == 'train':
+        return train.with_columns(
+                        pl.col('prediction_datetime').dt.date().alias('date')
+                    ).join(client,
+                           on=['county', 'product_type', 'is_business', 'date']
+                    )
+    else:
+        # when actively predicting, we only have client data from two days
+        # previous
+        return train.with_columns(
+                        pl.col('prediction_datetime').dt.date().alias('date')
+                    ).join(client,
+                           left_on=['county', 'product_type', 'is_business', 'date_when_predicting'],
+                           right_on=['county', 'product_type', 'is_business', 'date']
+                    )
 
-    return (production_features, production_targets,
-            consumption_features, consumption_targets)
 
-
-def localToUTC(df, timeInd, location):
-    """Converts local time to UTC, and adds missing hours"""
-    localTime = pd.to_datetime(df[timeInd]).dt.tz_localize(location, ambiguous=True)
-    df[timeInd] = localTime.dt.tz_convert('UTC')
-
-    allTimes = pd.date_range(df[timeInd].min(), df[timeInd].max(), freq='H')
-    missingTimes = allTimes.difference(df[timeInd])
-
-    for missing in missingTimes:
-        prev = missing + datetime.timedelta(hours=-1)
-        fillData = df[df[timeInd] == prev].iloc[-1].to_dict()
-        fillData[timeInd] = missing
-
-        df.loc[len(df)] = fillData
-
-    return df
+def split_prod_consume(targets):
+    return (targets.filter(pl.col('is_consumption') == False),
+            targets.filter(pl.col('is_consumption') == True))
