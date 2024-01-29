@@ -2,29 +2,21 @@ import datetime
 import polars as pl
 
 from sklearn.base import BaseEstimator, TransformerMixin
-import sklearn
-sklearn.set_config(enable_metadata_routing=True)
 
 
 class Delayed_Features(BaseEstimator, TransformerMixin):
     """Transformer for adding time-shifted historical data"""
-    def __init__(self, to_delay):
+    def __init__(self, to_delay, history):
         self.to_delay = to_delay
-        self.set_transform_request(historical=True)
+        self.history = history
 
     def fit(self, full_data, y=None):
         self.column_names_ = ['2d_ago', '7d_ago']
         return self
 
-    def transform(self, full_data, historical=None):
+    def transform(self, full_data, drop_nulls=False):
         """Add time-shifted historical data"""
-        provided_data = historical
-        
-        if historical is None:
-            historical = full_data
-
-        historical = historical[[self.to_delay, 'prediction_unit_id',
-                                'is_consumption', 'prediction_datetime']]
+        historical = self.history.data
 
         out = full_data.with_columns( 
                         (pl.col('prediction_datetime') - datetime.timedelta(days=2)).alias('2d_ago'),
@@ -40,7 +32,12 @@ class Delayed_Features(BaseEstimator, TransformerMixin):
                     ).drop('2d_ago'
                     )
 
-        if provided_data is None:
+        if drop_nulls:
             return out.drop_nulls()
         else:
             return out.fill_null(0)
+
+    def fit_transform(self, X, y=None):
+        """ Callled during fitting, we want to drop nulls. """
+        self.fit(X)
+        return self.transform(X, drop_nulls=True)

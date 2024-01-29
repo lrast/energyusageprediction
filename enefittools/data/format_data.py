@@ -44,13 +44,6 @@ def format_dfs(target=None, revealed_targets=None, client=None,
                         datetime.timedelta(days=-2)).alias('date_when_predicting'),
                   )
 
-    if revealed_targets is not None:
-        revealed_targets['datetime'] = pd.to_datetime(revealed_targets['datetime'])
-        revealed_targets = pl.from_pandas(revealed_targets,
-                                          schema_overrides=column_types)
-        revealed_targets = revealed_targets.rename({'datetime': 'prediction_datetime'})
-
-
     if client is not None:
         # client formatting
         client['date'] = pd.to_datetime(client['date']).dt.date
@@ -93,9 +86,6 @@ def format_dfs(target=None, revealed_targets=None, client=None,
         gas_prices['origin_date'] = pd.to_datetime(gas_prices['origin_date']).dt.date
         gas_prices = pl.from_pandas(gas_prices, schema_overrides=column_types)
 
-    if sample_prediction is not None:
-        pass
-
     if solar is not None:
         solar['datetime'] = pd.to_datetime(solar['datetime'])
         solar = pl.from_pandas(solar, schema_overrides=column_types)
@@ -104,6 +94,16 @@ def format_dfs(target=None, revealed_targets=None, client=None,
                         ((pl.col('latitude') != 57.6) | (pl.col('longitude') != 23.2)),
                         ((pl.col('latitude') != 57.6) | (pl.col('longitude') != 24.2)),
                        )
+
+    if sample_prediction is not None:
+        pass
+
+    if revealed_targets is not None:
+        revealed_targets['datetime'] = pd.to_datetime(revealed_targets['datetime'])
+        revealed_targets = pl.from_pandas(revealed_targets,
+                                          schema_overrides=column_types)
+        revealed_targets = revealed_targets.rename({'datetime': 'prediction_datetime'})
+        revealed_targets = assemble_train_client(revealed_targets, client, 'train')
 
     if assemble_and_split:
         prod, consume = split_prod_consume(assemble_train_client(target, client, mode))
