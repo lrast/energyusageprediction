@@ -14,35 +14,26 @@ class SM_Regression(BaseEstimator, RegressorMixin):
         self.model = None
         self.is_fit = False
 
-    def fit(self, data, overwrite=False):
+    def fit(self, data_holder, overwrite=False):
         if self.is_fit and not overwrite:
             # protection against costly re-fitting
             raise Exception('Already fit')
 
-        self.model = smf.ols(self.formula, data=data.to_pandas())
+        self.model = smf.ols(self.formula, data=data_holder.features.to_pandas())
         self.model = self.model.fit()
         
         self.model.remove_data()
         self.is_fit = True
         self.is_fit_ = True
         return self
-    
-    def predict(self, X):
-        predictions = self.model.predict(X.to_pandas())
 
-        outputs = X.drop(
+    def predict(self, data_holder):
+        predictions = self.model.predict(data_holder.features.to_pandas())
+
+        data_holder.features = data_holder.features.drop(
                         self.to_drop
                   ).with_columns(
                         prediction=pl.lit(pl.from_pandas(predictions))
                   )
 
-        return outputs
-
-    def residuals(self, data, target_col='target'):
-        predictions = pl.from_pandas(self.predict(data))
-
-        return data.with_columns(
-                        prediction=pl.lit(predictions)
-                  ).with_columns(
-                        residual=pl.col(target_col)-pl.col('prediction')
-                  )
+        return data_holder

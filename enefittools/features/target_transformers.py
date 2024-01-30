@@ -17,15 +17,24 @@ class Normalize_Target(BaseEstimator, TransformerMixin):
         self.is_fit_ = True
         return self
 
-    def transform(self, X):
+    def transform(self, data_holder):
+        X = data_holder.features
         if self.mode == 'fwd':
-            if 'target' in X.columns:
-                return X.with_columns(pl.col('target') / pl.col('installed_capacity'))
+            if data_holder.mode == 'train':
+                outs = X.with_columns(pl.col('target') / pl.col('installed_capacity'))
             else:
-                return X
+                outs = X
         if self.mode == 'inv':
-            return X.with_columns(pl.col('prediction') * pl.col('installed_capacity'))
+            outs = X.with_columns(pl.col('prediction') * pl.col('installed_capacity'))
 
-    def predict(self, X):
+        data_holder.features = outs
+        return data_holder
+
+    def predict(self, data_holder):
         if self.mode == 'inv':
-            return X.with_columns(pl.col('prediction') * pl.col('installed_capacity'))
+            data_holder.features = data_holder.features.with_columns(
+                                            pl.col('prediction') * pl.col('installed_capacity')
+                                            )
+            return data_holder
+
+

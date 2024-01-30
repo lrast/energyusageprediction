@@ -3,6 +3,58 @@ import polars as pl
 import pandas as pd
 
 
+class Data_Holder(object):
+    """Data_Holder: holder for all data as it flows through our pipeline
+        the pipeline updates Data_Holder.features as it operates
+    """
+    def __init__(self, target, weather_forecast, prices_electricity, prices_gas, solar,
+                 mode='train', normalize=False):
+        # initialize data
+        self.mode = mode
+        self.set_working_data(target, weather_forecast,
+                              prices_electricity, prices_gas, solar)
+        self.update_tracked_data(target, normalize)
+        self.features = target
+
+    def set_working_data(self, target, weather_forecast,
+                         prices_electricity, prices_gas,
+                         solar):
+        self.target = target
+        self.weather_forecast = weather_forecast
+        self.prices_electricity = prices_electricity
+        self.prices_gas = prices_gas
+        self.solar = solar
+
+        self.set_features(target)
+
+    def set_features(self, features):
+        self.features = features
+
+    def reset(self):
+        self.features = self.target
+        return self
+
+    def update_tracked_data(self, new_targets, normalize=False):
+        if normalize:
+            new_targets = new_targets.with_columns(
+                                        pl.col('target') / pl.col('installed_capacity')
+                                        )
+        new_targets = new_targets.select('prediction_datetime', 'prediction_unit_id',
+                                         'is_consumption', 'target')
+
+        if self.mode == 'train':
+            self.target_historical = new_targets
+        else:
+            latest_seen = self.target_historical['prediction_datetime'].max()
+            unseen_data = new_targets.filter(pl.col('prediction_datetime') > latest_seen)
+
+            self.target_historical = pl.concat([self.target_historical, unseen_data],
+                                               how='vertical').unique()
+
+    def get_targets(self):
+        return self.features.select('row_id', 'target')
+
+
 def format_dfs(target=None, revealed_targets=None, client=None,
                weather_historical=None, weather_forecast=None,
                electricity_prices=None, gas_prices=None, 
@@ -11,7 +63,8 @@ def format_dfs(target=None, revealed_targets=None, client=None,
                filter_weather=True,
                assemble_and_split=False,
                mode='train'):
-    """ dataframe formatting for training and online use 
+    """ basic data processing and dataframe formatting for both
+     training and online use 
         
         - encodes as polars dataframes
         - sets proper types

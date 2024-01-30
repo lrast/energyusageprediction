@@ -4,18 +4,18 @@ from sklearn.base import BaseEstimator, TransformerMixin
 
 class Solar_Features(BaseEstimator, TransformerMixin):
     """Transformer that adds Solar Features to the data"""
-    def __init__(self, dataset, additional_joins=[]):
+    def __init__(self, additional_joins=[]):
         super(Solar_Features, self).__init__()
-        self.dataset = dataset
         self.additional_joins = additional_joins
 
-    def fit(self, X, y=None):
+    def fit(self, data_holder, y=None):
         return self
 
-    def transform(self, X, y=None):
+    def transform(self, data_holder, y=None):
         left_keys = ['prediction_datetime'] + self.additional_joins
         right_keys = ['datetime'] + self.additional_joins
 
-        return X.join(self.dataset,
-                      left_on=left_keys, right_on=right_keys,
-                      how='left')
+        outs = data_holder.features.join(data_holder.solar,
+                                         left_on=left_keys, right_on=right_keys,
+                                         how='left')
+        data_holder.features = outs

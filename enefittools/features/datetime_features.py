@@ -10,7 +10,8 @@ class Datetime_Features(BaseEstimator, TransformerMixin):
     def __init__(self):
         pass
     
-    def fit(self, target_data, y=None):
+    def fit(self, data_holder, y=None):
+        target_data = data_holder.features
         dates = pd.date_range(target_data['prediction_datetime'].dt.date().min(), 
                               target_data['prediction_datetime'].dt.date().max())
         fourier = CalendarFourier(freq="A", order=6) 
@@ -39,8 +40,12 @@ class Datetime_Features(BaseEstimator, TransformerMixin):
 
         return raw_features, ['trend'] + list(name_dict.values())
 
-    def transform(self, full_data):
+    def transform(self, data_holder):
+        full_data = data_holder.features
         date_features, _ = self.make_date_features(full_data['date'].unique())
+
+        #print(full_data.columns)
+        #print(date_features.columns)
 
         full_data = full_data.with_columns( 
                                 pl.col('prediction_datetime').dt.weekday().alias('weekday'),
@@ -49,4 +54,6 @@ class Datetime_Features(BaseEstimator, TransformerMixin):
                                     date_features.with_columns(pl.col('date').dt.date()),
                                     on='date'
                             )
-        return full_data
+
+        data_holder.features = full_data
+        return data_holder
