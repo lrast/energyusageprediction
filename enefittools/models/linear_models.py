@@ -7,9 +7,8 @@ from sklearn.base import BaseEstimator, RegressorMixin
 class SM_Regression(BaseEstimator, RegressorMixin):
     """ Wrapper for statsmodels formula OLS
     """
-    def __init__(self, formula, to_drop):
+    def __init__(self, formula):
         self.formula = formula
-        self.to_drop = to_drop
 
         self.model = None
         self.is_fit = False
@@ -30,8 +29,8 @@ class SM_Regression(BaseEstimator, RegressorMixin):
     def predict(self, data_holder):
         predictions = self.model.predict(data_holder.features.to_pandas())
 
-        data_holder.features = data_holder.features.drop(
-                        self.to_drop
+        data_holder.features = data_holder.features.select(
+                        data_holder.target.columns
                   ).with_columns(
                         prediction=pl.lit(pl.from_pandas(predictions))
                   )

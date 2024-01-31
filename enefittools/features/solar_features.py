@@ -9,6 +9,7 @@ class Solar_Features(BaseEstimator, TransformerMixin):
         self.additional_joins = additional_joins
 
     def fit(self, data_holder, y=None):
+        self.is_fit_ = True
         return self
 
     def transform(self, data_holder, y=None):
@@ -19,3 +20,5 @@ class Solar_Features(BaseEstimator, TransformerMixin):
                                          left_on=left_keys, right_on=right_keys,
                                          how='left')
         data_holder.features = outs
+
+        return data_holder

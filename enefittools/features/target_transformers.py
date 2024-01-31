@@ -36,5 +36,3 @@ class Normalize_Target(BaseEstimator, TransformerMixin):
                                             pl.col('prediction') * pl.col('installed_capacity')
                                             )
             return data_holder
-
-

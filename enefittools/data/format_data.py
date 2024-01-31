@@ -113,11 +113,17 @@ def format_dfs(target=None, revealed_targets=None, client=None,
                                     ((pl.col('latitude') != 57.6) | (pl.col('longitude') != 24.2)),
                                    )
 
+        weather_historical = weather_historical.with_columns(pl.col('latitude').round(3),
+                                                             pl.col('longitude').round(3))
+
     if weather_forecast is not None:
         weather_forecast['origin_datetime'] = pd.to_datetime(weather_forecast['origin_datetime'])
         weather_forecast['forecast_datetime'] = pd.to_datetime(weather_forecast['forecast_datetime'])
         weather_forecast = pl.from_pandas(weather_forecast,
                                           schema_overrides=column_types)
+
+        weather_forecast = weather_forecast.with_columns(pl.col('latitude').round(3),
+                                                         pl.col('longitude').round(3))
 
         if filter_weather:
             weather_forecast = weather_forecast.filter(
