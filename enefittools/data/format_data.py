@@ -5,7 +5,15 @@ import pandas as pd
 
 class Data_Holder(object):
     """Data_Holder: holder for all data as it flows through our pipeline
-        the pipeline updates Data_Holder.features as it operates
+        the pipeline updates Data_Holder.features as it operates.
+
+        The goal here is to allow our pipeline to be expressible using sklearn
+        but more flexible and agnostic to data representation.
+        This allows ease of target transformation, learning on residuals, and
+        dataset manipulation.
+
+        However, there is a cost of introducing state into the representation,
+        introducing complexity and requiring state management
     """
     def __init__(self, target, weather_forecast, prices_electricity, prices_gas, solar,
                  mode='train', normalize=False):
@@ -130,6 +138,11 @@ def format_dfs(target=None, revealed_targets=None, client=None,
                                     ((pl.col('latitude') != 57.6) | (pl.col('longitude') != 23.2)),
                                     ((pl.col('latitude') != 57.6) | (pl.col('longitude') != 24.2)),
                                    )
+
+        weather_forecast = weather_forecast.with_columns(
+                                    longitude=(10*pl.col('longitude')).round(3).cast(pl.Int64),
+                                    latitude=(10*pl.col('latitude')).round(3).cast(pl.Int64)
+                                )
 
     if electricity_prices is not None:
         electricity_prices['forecast_datetime'] = pd.to_datetime(electricity_prices['forecast_date'])
